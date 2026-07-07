@@ -12,7 +12,6 @@ It is primarily intended for use in the Solana Alpenglow consensus protocol, but
 - **Ergonomic Verification:** Verify signatures bi-directionally (from the public key or the signature) using any representation type via the `VerifySignature` and `VerifiableSignature` traits.
 - **Aggregate Verification & Screening:** Optimized multi-miller loop algorithms for verifying aggregated signatures against shared messages (multisig) or screening multiple distinct-message signatures via aggregate relations.
 - Supports aggregate screening of distinct-message signature sets. Note that `verify_distinct` and its variants provide screening guarantees only and do not imply individual signature validity per signer. See the API documentation for details.
-- **Parallelization:** Optional `rayon` integration to speed up multi-scalar multiplications (MSMs) and heavy verification loops.
 - **Rogue-Key Attack Prevention:** Crate-provided aggregation APIs require `PopVerified` keys, and crate-provided `VerifySignature` implementations are limited to PoP-verified wrappers.
 
 ---
@@ -157,4 +156,4 @@ verified_pubkey.verify_signature(&signature, message).unwrap();
 
 ## `no_std` Support
 
-While you will see `#![no_std]` markers and `alloc` usage throughout the codebase, true `no_std` support is currently a work in progress. Certain dependencies, cryptographic backend fallbacks, and optional features (like `rayon`) currently rely on the standard library. The `no_std` markers exist to pave the way for full embedded/on-chain support in a future release.
+While you will see `#![no_std]` markers and `alloc` usage throughout the codebase, true `no_std` support is currently a work in progress. Certain dependencies, cryptographic backend fallbacks, and optional features currently rely on the standard library. The `no_std` markers exist to pave the way for full embedded/on-chain support in a future release.

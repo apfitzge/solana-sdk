@@ -1,5 +1,3 @@
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 use {
     crate::{
         error::BlsError,
@@ -67,55 +65,5 @@ impl SignatureProjective {
             &points,
             &scalar_values,
         )))
-    }
-
-    /// Aggregate a list of signatures into an existing aggregate
-    #[allow(clippy::arithmetic_side_effects)]
-    #[cfg(feature = "parallel")]
-    pub fn par_aggregate_with<'a, S: AddToSignatureProjective + Sync + 'a>(
-        &mut self,
-        signatures: impl ParallelIterator<Item = &'a S>,
-    ) -> Result<(), BlsError> {
-        match SignatureProjective::par_aggregate(signatures) {
-            Ok(aggregate) => {
-                self.0 += &aggregate.0;
-                Ok(())
-            }
-            Err(BlsError::EmptyAggregation) => Ok(()),
-            Err(e) => Err(e),
-        }
-    }
-
-    /// Aggregate a list of signatures
-    #[allow(clippy::arithmetic_side_effects)]
-    #[cfg(feature = "parallel")]
-    pub fn par_aggregate<'a, S: AddToSignatureProjective + Sync + 'a>(
-        signatures: impl ParallelIterator<Item = &'a S>,
-    ) -> Result<SignatureProjective, BlsError> {
-        let (aggregate, has_items) = signatures
-            .into_par_iter()
-            .fold(
-                || Ok::<_, BlsError>((SignatureProjective::identity(), false)),
-                |acc, signature| {
-                    let (mut proj, _) = acc?;
-                    signature.add_to_accumulator(&mut proj)?;
-                    Ok((proj, true))
-                },
-            )
-            .reduce(
-                || Ok::<_, BlsError>((SignatureProjective::identity(), false)),
-                |a, b| {
-                    let (mut a_proj, a_has) = a?;
-                    let (b_proj, b_has) = b?;
-                    a_proj.0 += b_proj.0;
-                    Ok((a_proj, a_has || b_has))
-                },
-            )?;
-
-        if !has_items {
-            return Err(BlsError::EmptyAggregation);
-        }
-
-        Ok(aggregate)
     }
 }

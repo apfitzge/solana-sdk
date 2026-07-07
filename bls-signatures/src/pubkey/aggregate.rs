@@ -1,5 +1,3 @@
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 use {
     crate::{
         error::BlsError,
@@ -69,56 +67,5 @@ impl PubkeyProjective {
             &points,
             &scalar_values,
         ))))
-    }
-
-    /// Aggregate a list of Proof-of-Possession verified public keys into an
-    /// existing aggregate (Parallel)
-    #[allow(clippy::arithmetic_side_effects)]
-    #[cfg(feature = "parallel")]
-    pub fn par_aggregate_with<'a, P: AddToPubkeyProjective + Sync + 'a>(
-        &mut self,
-        pubkeys: impl ParallelIterator<Item = &'a PopVerified<P>>,
-    ) -> Result<(), BlsError> {
-        match PubkeyProjective::par_aggregate(pubkeys) {
-            Ok(aggregate) => {
-                self.0 += &aggregate.0 .0;
-                Ok(())
-            }
-            Err(BlsError::EmptyAggregation) => Ok(()),
-            Err(e) => Err(e),
-        }
-    }
-
-    /// Aggregate a list of Proof-of-Possession verified public keys (Parallel)
-    #[allow(clippy::arithmetic_side_effects)]
-    #[cfg(feature = "parallel")]
-    pub fn par_aggregate<'a, P: AddToPubkeyProjective + Sync + 'a>(
-        pubkeys: impl ParallelIterator<Item = &'a PopVerified<P>>,
-    ) -> Result<AggregatePubkey<PubkeyProjective>, BlsError> {
-        let (aggregate, has_items) = pubkeys
-            .into_par_iter()
-            .fold(
-                || Ok::<_, BlsError>((PubkeyProjective::identity(), false)),
-                |acc, pubkey| {
-                    let (mut proj, _) = acc?;
-                    pubkey.0.add_to_accumulator(&mut proj)?;
-                    Ok((proj, true))
-                },
-            )
-            .reduce(
-                || Ok::<_, BlsError>((PubkeyProjective::identity(), false)),
-                |a, b| {
-                    let (mut a_proj, a_has) = a?;
-                    let (b_proj, b_has) = b?;
-                    a_proj.0 += b_proj.0;
-                    Ok((a_proj, a_has || b_has))
-                },
-            )?;
-
-        if !has_items {
-            return Err(BlsError::EmptyAggregation);
-        }
-
-        Ok(AggregatePubkey(aggregate))
     }
 }

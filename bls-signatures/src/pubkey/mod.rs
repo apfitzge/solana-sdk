@@ -47,8 +47,6 @@ pub use {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "parallel")]
-    use rayon::prelude::*;
     use {
         super::*,
         crate::{
@@ -275,37 +273,6 @@ mod tests {
         let serialized = bincode::serialize(&original).unwrap();
         let deserialized: PubkeyCompressed = bincode::deserialize(&serialized).unwrap();
         assert_eq!(original, deserialized);
-    }
-
-    #[test]
-    #[cfg(feature = "parallel")]
-    fn test_parallel_pubkey_aggregation() {
-        let keypair0 = Keypair::new();
-        let keypair1 = Keypair::new();
-
-        let pubkey0: PubkeyProjective = (*keypair0.public).into();
-        let pubkey1: PubkeyProjective = (*keypair1.public).into();
-
-        let pop0 = unsafe { PopVerified::new_unchecked(pubkey0) };
-        let pop1 = unsafe { PopVerified::new_unchecked(pubkey1) };
-
-        // Test `aggregate`
-        let sequential_agg = PubkeyProjective::aggregate([pop0, pop1].iter()).unwrap();
-        let parallel_agg = PubkeyProjective::par_aggregate([pop0, pop1].par_iter()).unwrap();
-        assert_eq!(sequential_agg, parallel_agg);
-
-        // Test `aggregate_with`
-        let mut parallel_agg_with = pubkey0;
-        parallel_agg_with
-            .par_aggregate_with([pop1].par_iter())
-            .unwrap();
-
-        assert_eq!(*sequential_agg, parallel_agg_with);
-
-        // Test empty case
-        let empty: std::vec::Vec<PopVerified<PubkeyProjective>> = std::vec![];
-        let empty_agg_err = PubkeyProjective::par_aggregate(empty.par_iter()).unwrap_err();
-        assert_eq!(empty_agg_err, BlsError::EmptyAggregation);
     }
 
     #[test]

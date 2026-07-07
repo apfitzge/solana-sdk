@@ -82,38 +82,10 @@ fn bench_aggregate(c: &mut Criterion) {
             },
         );
 
-        #[cfg(feature = "parallel")]
-        {
-            group.bench_function(
-                format!("{num_validators} parallel signature aggregation"),
-                |b| {
-                    use rayon::prelude::*;
-                    b.iter(|| {
-                        black_box(SignatureProjective::par_aggregate(
-                            signature_bytes.par_iter(),
-                        ))
-                    });
-                },
-            );
-        }
-
         // Benchmark for aggregating multiple public keys
         group.bench_function(format!("{num_validators} pubkey aggregation"), |b| {
             b.iter(|| black_box(PubkeyProjective::aggregate(verified_pubkeys.iter())));
         });
-
-        #[cfg(feature = "parallel")]
-        {
-            group.bench_function(
-                format!("{num_validators} parallel pubkey aggregation"),
-                |b| {
-                    use rayon::prelude::*;
-                    b.iter(|| {
-                        black_box(PubkeyProjective::par_aggregate(verified_pubkeys.par_iter()))
-                    });
-                },
-            );
-        }
 
         group.bench_function(
             format!("{num_validators} sequential aggregate verification"),
@@ -122,21 +94,6 @@ fn bench_aggregate(c: &mut Criterion) {
                     SignatureProjective::verify_aggregate(
                         verified_pubkeys.iter(),
                         signature_bytes.iter(),
-                        message,
-                    )
-                    .unwrap();
-                });
-            },
-        );
-
-        #[cfg(feature = "parallel")]
-        group.bench_function(
-            format!("{num_validators} parallel aggregate verification"),
-            |b| {
-                b.iter(|| {
-                    SignatureProjective::par_verify_aggregate(
-                        &verified_pubkeys,
-                        &signature_bytes,
                         message,
                     )
                     .unwrap();
@@ -239,25 +196,6 @@ fn bench_aggregate_screening(c: &mut Criterion) {
                 });
             },
         );
-
-        #[cfg(feature = "parallel")]
-        {
-            let message_refs: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
-
-            group.bench_function(
-                format!("{num_validators} parallel aggregate screening"),
-                |b| {
-                    b.iter(|| {
-                        SignatureProjective::par_verify_distinct(
-                            &pubkeys,
-                            &signatures,
-                            &message_refs,
-                        )
-                        .unwrap();
-                    });
-                },
-            );
-        }
     }
     group.finish()
 }

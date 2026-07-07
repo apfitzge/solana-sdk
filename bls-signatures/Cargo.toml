@@ -22,7 +22,6 @@ crate-type = ["rlib"]
 bytemuck = ["dep:bytemuck"]
 default = ["std"]
 frozen-abi = ["dep:solana-frozen-abi", "dep:solana-frozen-abi-macro", "std"]
-parallel = ["dep:rayon"]
 serde = ["dep:cfg_eval", "dep:serde", "dep:serde_with"]
 solana-signer-derive = ["dep:solana-signer", "dep:solana-signature", "dep:subtle"]
 std = ["dep:serde_json", "wincode?/std"]
@@ -48,7 +47,6 @@ blstrs = { workspace = true }
 ff = { workspace = true }
 group = { workspace = true }
 rand = "0.8" # blstrs is still on rand_core v0.6, so pin this for now
-rayon = { workspace = true, optional = true }
 solana-signature = { workspace = true, optional = true }
 solana-signer = { workspace = true, optional = true }
 subtle = { workspace = true, optional = true }
