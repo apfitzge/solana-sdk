@@ -1,5 +1,3 @@
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 use {
     criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion},
     ed25519_dalek::Signer,
@@ -75,30 +73,6 @@ fn bench_verify(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("batch", size), &data, |b, data| {
             b.iter(|| {
                 assert!(Signature::batch_verify(black_box(signature_data(data))));
-            });
-        });
-
-        #[cfg(feature = "parallel")]
-        group.bench_with_input(
-            BenchmarkId::new("par_individual", size),
-            &data,
-            |b, data| {
-                b.iter(|| {
-                    assert!(data
-                        .signatures
-                        .par_iter()
-                        .zip(data.pubkeys.par_iter())
-                        .zip(data.messages.par_iter())
-                        .all(|((signature, pubkey), message)| black_box(signature)
-                            .verify(black_box(pubkey.as_slice()), black_box(message.as_slice()),)));
-                });
-            },
-        );
-
-        #[cfg(feature = "parallel")]
-        group.bench_with_input(BenchmarkId::new("par_batch", size), &data, |b, data| {
-            b.iter(|| {
-                assert!(Signature::par_batch_verify(black_box(signature_data(data))));
             });
         });
     }

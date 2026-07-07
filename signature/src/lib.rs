@@ -19,8 +19,6 @@ extern crate std;
 #[cfg(any(test, feature = "std", feature = "batch-verify"))]
 use alloc::vec::Vec;
 use core::error::Error;
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 #[cfg(feature = "wincode")]
 use wincode::{SchemaRead, SchemaWrite};
 #[cfg(feature = "serde")]
@@ -178,10 +176,7 @@ impl Signature {
         // execution, and at approximately 256 signatures for highly parallel
         // environments (for example, 16-thread execution). These thresholds can
         // be tuned further based on future profiling and experimentation.
-        #[cfg(not(feature = "parallel"))]
         const INDIVIDUAL_VERIFY_THRESHOLD: usize = 1;
-        #[cfg(feature = "parallel")]
-        const INDIVIDUAL_VERIFY_THRESHOLD: usize = 8;
 
         let len = signature_data.len();
         if len <= INDIVIDUAL_VERIFY_THRESHOLD {
@@ -204,31 +199,6 @@ impl Signature {
         }
 
         ed25519_dalek::verify_batch(&message_bytes, &parsed_signatures, &parsed_pubkeys).is_ok()
-    }
-
-    /// Parallel batch-verifies signatures over their corresponding public keys
-    /// and messages.
-    ///
-    /// Each iterator item is a tuple of `(signature, pubkey_bytes,
-    /// message_bytes)`, where `signature` is the Ed25519 signature to verify,
-    /// `pubkey_bytes` is the signer's public key, and `message_bytes` is the
-    /// exact message that was signed. The iterator must know its exact length.
-    /// Returns `false` under the same conditions as [`Self::batch_verify`].
-    #[cfg(feature = "parallel")]
-    pub fn par_batch_verify<'a>(
-        signature_data: impl ExactSizeIterator<Item = (&'a Signature, &'a [u8], &'a [u8])>,
-    ) -> bool {
-        let signatures = signature_data.collect::<Vec<_>>();
-
-        if signatures.is_empty() {
-            return true;
-        }
-
-        let chunk_size = signatures.len().div_ceil(rayon::current_num_threads());
-
-        signatures
-            .par_chunks(chunk_size)
-            .all(|signatures| Self::batch_verify(signatures.iter().copied()))
     }
 }
 
@@ -548,26 +518,6 @@ mod tests {
             &signatures,
             &pubkeys,
             &messages,
-        )));
-    }
-
-    #[cfg(feature = "parallel")]
-    #[test]
-    fn test_par_batch_verify() {
-        let (messages, pubkeys, signatures) = batch_verify_data(9);
-
-        assert!(Signature::par_batch_verify(batch_verify_items(
-            &signatures,
-            &pubkeys,
-            &messages,
-        )));
-
-        let mut bad_messages = messages;
-        bad_messages[1] = b"not-world".to_vec();
-        assert!(!Signature::par_batch_verify(batch_verify_items(
-            &signatures,
-            &pubkeys,
-            &bad_messages,
         )));
     }
 }
